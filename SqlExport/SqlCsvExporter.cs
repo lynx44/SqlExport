@@ -32,7 +32,7 @@ namespace SqlExport
             var streamWriter = new StreamWriter(stream);
             this.sqlConnection.UsingOpenConnection(c =>
             {
-                commandText = CleanSqlCmdSyntax(commandText);
+                commandText = CleanSqlCmdSyntax(commandText, parameters);
                 var command = new SqlCommand(commandText, c);
                 foreach (var parameterPair in parameters)
                 {
@@ -77,12 +77,17 @@ namespace SqlExport
             return stream;
         }
 
-        private static string CleanSqlCmdSyntax(string commandText)
+        private static string CleanSqlCmdSyntax(string commandText, Dictionary<string, object> parameters)
         {
-            commandText = Regex.Replace(commandText, "(DECLARE\\s+@(.)*?;)", string.Empty);
-            commandText = Regex.Replace(commandText, "(DECLARE\\s+@(.)*$)", string.Empty, RegexOptions.Multiline);
-            commandText = Regex.Replace(commandText, "(SET\\s+@(.)*?;)", string.Empty, RegexOptions.Multiline);
-            commandText = Regex.Replace(commandText, "(SET\\s+@(.)*$)", string.Empty, RegexOptions.Multiline);
+            foreach (var keyValuePair in parameters)
+            {
+                var parameterName = keyValuePair.Key;
+                commandText = Regex.Replace(commandText, string.Format("(DECLARE\\s+{0}(.)*?;)", parameterName), string.Empty, RegexOptions.IgnoreCase);
+                commandText = Regex.Replace(commandText, string.Format("(DECLARE\\s+{0}(.)*?$)", parameterName), string.Empty, RegexOptions.Multiline | RegexOptions.IgnoreCase);
+                commandText = Regex.Replace(commandText, string.Format("(SET\\s+{0}(.)*?;)", parameterName), string.Empty, RegexOptions.Multiline | RegexOptions.IgnoreCase);
+                commandText = Regex.Replace(commandText, string.Format("(SET\\s+{0}(.)*?$)", parameterName), string.Empty, RegexOptions.Multiline | RegexOptions.IgnoreCase);
+            }
+            
             return commandText;
         }
     }
