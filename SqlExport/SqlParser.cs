@@ -62,11 +62,11 @@ namespace SqlExport
             var paramDec = new SqlParameterDeclaration();
             var parameterName = this.GetParameterName(declaration);
             paramDec.Name = parameterName;
-            var typeDeclaration = declaration.Split(' ').Last();
+            var typeDeclaration = Regex.Match(declaration, "[A-z]+(\\(\\d+(,\\s*\\d+){0,1}\\)){0,1}\\s*?($|;)").Value.Trim();
             string typeName;
             if (typeDeclaration.Contains("("))
             {
-                var lengthArgs = typeDeclaration.Substring(typeDeclaration.IndexOf("("), typeDeclaration.IndexOf(")") - typeDeclaration.IndexOf("("));
+                var lengthArgs = typeDeclaration.Substring(typeDeclaration.IndexOf("(") + 1, typeDeclaration.IndexOf(")") - typeDeclaration.IndexOf("(") - 1);
                 var sizes = lengthArgs.Split(',');
                 paramDec.Size = int.Parse(sizes.First());
                 if (sizes.Length > 1)
@@ -90,6 +90,7 @@ namespace SqlExport
         {
             var value = assignment.Split('=').Last()
                 .Replace(";", string.Empty)
+                .Replace("N'", string.Empty)
                 .Replace("'", string.Empty)
                 .Trim();
 
