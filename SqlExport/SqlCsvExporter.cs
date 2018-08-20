@@ -5,6 +5,7 @@ using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using ServiceStack;
 using SqlExport.Extensions;
@@ -20,18 +21,19 @@ namespace SqlExport
             this.sqlConnection = sqlConnection;
         }
 
-        public Stream ExportSql(string sqlCommand)
+        public Stream ExportSql(string commandText)
         {
-            return ExportSql(sqlCommand, new Dictionary<string, object>());
+            return ExportSql(commandText, new Dictionary<string, object>());
         }
 
-        public Stream ExportSql(string sqlCommand, Dictionary<string, object> parameters)
+        public Stream ExportSql(string commandText, Dictionary<string, object> parameters)
         {
             var stream = new MemoryStream();
             var streamWriter = new StreamWriter(stream);
             this.sqlConnection.UsingOpenConnection(c =>
             {
-                var command = new SqlCommand(sqlCommand, c);
+                commandText = CleanSqlCmdSyntax(commandText);
+                var command = new SqlCommand(commandText, c);
                 foreach (var parameterPair in parameters)
                 {
                     command.Parameters.AddWithValue(parameterPair.Key, parameterPair.Value);
@@ -73,6 +75,15 @@ namespace SqlExport
             });
 
             return stream;
+        }
+
+        private static string CleanSqlCmdSyntax(string commandText)
+        {
+            commandText = Regex.Replace(commandText, "(DECLARE\\s+@(.)*?;)", string.Empty);
+            commandText = Regex.Replace(commandText, "(DECLARE\\s+@(.)*$)", string.Empty, RegexOptions.Multiline);
+            commandText = Regex.Replace(commandText, "(SET\\s+@(.)*?;)", string.Empty, RegexOptions.Multiline);
+            commandText = Regex.Replace(commandText, "(SET\\s+@(.)*$)", string.Empty, RegexOptions.Multiline);
+            return commandText;
         }
     }
 }
