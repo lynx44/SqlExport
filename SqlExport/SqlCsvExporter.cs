@@ -22,11 +22,21 @@ namespace SqlExport
 
         public Stream ExportSql(string sqlCommand)
         {
+            return ExportSql(sqlCommand, new Dictionary<string, object>());
+        }
+
+        public Stream ExportSql(string sqlCommand, Dictionary<string, object> parameters)
+        {
             var stream = new MemoryStream();
             var streamWriter = new StreamWriter(stream);
             this.sqlConnection.UsingOpenConnection(c =>
             {
                 var command = new SqlCommand(sqlCommand, c);
+                foreach (var parameterPair in parameters)
+                {
+                    command.Parameters.AddWithValue(parameterPair.Key, parameterPair.Value);
+                }
+
                 using(var sqlDataReader = command.ExecuteReader())
                 {
                     for (int i = 0; i < sqlDataReader.FieldCount; i++)
