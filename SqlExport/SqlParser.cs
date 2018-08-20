@@ -20,8 +20,8 @@ namespace SqlExport
 
             var paramDeclarations = declarations.Select(d => this.ParseDeclaration(d)).ToList();
             paramDeclarations.Join(assignments, 
-                    d => d.Name, 
-                    a => this.GetParameterName(a), 
+                    d => d.Name.ToLower(), 
+                    a => this.GetParameterName(a).ToLower(), 
                     (s, a) => new { Param = s, Assignment = a}).ToList()
                 .ForEach(o =>
                 {
