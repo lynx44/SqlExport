@@ -15,6 +15,7 @@ namespace SqlExport
         public IEnumerable<SqlParameterDeclaration> ParseVariables(string commandText)
         {
             var commandTextCopy = new string(commandText.ToCharArray());
+            commandTextCopy = this.CleanComments(commandTextCopy);
             var declarations = this.FindDeclarations(ref commandTextCopy);
             var assignments = this.FindAssignments(ref commandTextCopy);
 
@@ -81,7 +82,16 @@ namespace SqlExport
                 typeName = typeDeclaration.Replace(";", string.Empty);
             }
 
-            paramDec.DbType = (SqlDbType)Enum.Parse(typeof(SqlDbType), typeName, true);
+            SqlDbType sqlDbType;
+            if (Enum.TryParse(typeName, true, out sqlDbType))
+            {
+                paramDec.DbType = sqlDbType;
+            }
+            else
+            {
+                paramDec.DbType = Enum.GetValues(typeof(SqlDbType)).Cast<SqlDbType>().
+                    FirstOrDefault(t => t.ToString().StartsWith(typeName));
+            }
 
             return paramDec;
         }
@@ -99,7 +109,13 @@ namespace SqlExport
 
         private string GetParameterName(string snippet)
         {
-            return Regex.Match(snippet, "@.+?\\s").Groups.Cast<Group>().Select(g => g.Value.Trim()).First();
+            return Regex.Match(snippet, "@[A-z0-9_]+").Groups.Cast<Group>().Select(g => g.Value.Trim()).First();
+        }
+
+        private string CleanComments(string commandText)
+        {
+            commandText = Regex.Replace(commandText, "--.*", string.Empty);
+            return commandText;
         }
     }
 
@@ -108,7 +124,7 @@ namespace SqlExport
         public string Name { get; set; }
         public SqlDbType DbType { get; set; }
         public object DefaultValue { get; set; }
-        public int Size { get; set; }
-        public int Precision { get; set; }
+        public int? Size { get; set; }
+        public int? Precision { get; set; }
     }
 }

@@ -135,5 +135,48 @@ namespace SqlExport.Tests.Tests
             Assert.AreEqual(SqlDbType.Bit, parameters.First().DbType);
             Assert.AreEqual("1", parameters.First().DefaultValue);
         }
+
+        [TestMethod]
+        public void ReadsDefaultValue_WhenAssignmentContainsNoSpaces()
+        {
+            var parameters =
+                this.sqlParser.ParseVariables("DECLARE @IsHuman BIT; SET @IsHuman=1; SELECT * FROM Person");
+
+            Assert.AreEqual(1, parameters.Count());
+            Assert.AreEqual("@IsHuman", parameters.First().Name);
+            Assert.AreEqual(SqlDbType.Bit, parameters.First().DbType);
+            Assert.AreEqual("1", parameters.First().DefaultValue);
+        }
+
+        [TestMethod]
+        public void RemovesInlineCommentsFromVariableAssignment()
+        {
+            var parameters =
+                this.sqlParser.ParseVariables(
+                    "DECLARE @IsHuman BIT" + Environment.NewLine +
+                    "SET @IsHuman = 1 -- this one is good" + Environment.NewLine +
+                    "SELECT * FROM Person");
+
+            Assert.AreEqual(1, parameters.Count());
+            Assert.AreEqual("@IsHuman", parameters.First().Name);
+            Assert.AreEqual(SqlDbType.Bit, parameters.First().DbType);
+            Assert.AreEqual("1", parameters.First().DefaultValue);
+        }
+
+        [TestMethod]
+        public void IgnoresVariableAssignmentsInInlineComments()
+        {
+            var parameters =
+                this.sqlParser.ParseVariables(
+                    "DECLARE @IsHuman BIT" + Environment.NewLine +
+                    "SET @IsHuman = 1" + Environment.NewLine +
+                    "--SET @IsHuman=23" + Environment.NewLine +
+                    "SELECT * FROM Person");
+
+            Assert.AreEqual(1, parameters.Count());
+            Assert.AreEqual("@IsHuman", parameters.First().Name);
+            Assert.AreEqual(SqlDbType.Bit, parameters.First().DbType);
+            Assert.AreEqual("1", parameters.First().DefaultValue);
+        }
     }
 }
