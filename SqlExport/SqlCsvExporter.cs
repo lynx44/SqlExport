@@ -26,7 +26,7 @@ namespace SqlExport
             return ExportSql(commandText, new Dictionary<string, object>());
         }
 
-        public Stream ExportSql(string commandText, Dictionary<string, object> parameters)
+        public Stream ExportSql(string commandText, Dictionary<string, object> parameters, int timeout = 120)
         {
             var stream = new MemoryStream();
             var streamWriter = new StreamWriter(stream);
@@ -34,6 +34,7 @@ namespace SqlExport
             {
                 commandText = CleanSqlCmdSyntax(commandText, parameters);
                 var command = new SqlCommand(commandText, c);
+                command.CommandTimeout = timeout;
                 foreach (var parameterPair in parameters)
                 {
                     command.Parameters.AddWithValue(parameterPair.Key, parameterPair.Value);
@@ -55,18 +56,20 @@ namespace SqlExport
                         }
                     }
 
-                    while(sqlDataReader.Read())
-                    for (int i = 0; i < sqlDataReader.FieldCount; i++)
+                    while (sqlDataReader.Read())
                     {
-                        var field = sqlDataReader[i].ToCsvField();
-                        streamWriter.Write(field);
-                        if (i != sqlDataReader.FieldCount - 1)
+                        for (int i = 0; i < sqlDataReader.FieldCount; i++)
                         {
-                            streamWriter.Write(",");
-                        }
-                        else
-                        {
-                            streamWriter.Write("\n");
+                            var field = sqlDataReader[i].ToCsvField();
+                            streamWriter.Write(field);
+                            if (i != sqlDataReader.FieldCount - 1)
+                            {
+                                streamWriter.Write(",");
+                            }
+                            else
+                            {
+                                streamWriter.Write("\n");
+                            }
                         }
 
                         streamWriter.Flush();
